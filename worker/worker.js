@@ -212,7 +212,8 @@ function splitMood(raw) {
   return { text: text.replace(/\[\[[^\]]*\]\]/g, ''), mood: { state, conf } };
 }
 
-// Replies are spoken aloud: drop reasoning blocks and markdown symbols.
+// Replies are spoken aloud: drop reasoning blocks and markdown symbols, and the opening
+// "หนูขอแนะนำให้คุณ" the model keeps adding despite the prompt (voicing costs per character).
 function cleanReply(text) {
   return String(text || '')
     .replace(/<think>[\s\S]*?<\/think>/gi, '')
@@ -220,6 +221,7 @@ function cleanReply(text) {
     .replace(/^\s*[-•]\s+/gm, '')
     .replace(/\s+\n/g, '\n')
     .trim()
+    .replace(/^หนูขอแนะนำให้(คุณ)?\s*/, '')
     .slice(0, 800);
 }
 
