@@ -310,6 +310,10 @@ main{display:block}
 /* Voice mood: a small "how you seem" card under the reply, asking the user to confirm */
 .mood-card{width:100%;margin:0;padding:.45rem .8rem;border:2px dashed var(--fur);border-radius:14px;background:rgba(255,255,255,.8);font-size:.9rem;line-height:1.45}
 .mood-card p{margin:0}
+.talk-help{width:100%;margin:0;padding:.5rem .8rem;border:2px solid var(--fur);border-radius:14px;background:rgba(255,255,255,.92);font-size:.9rem;line-height:1.45}
+.talk-help p{margin:0}
+.talk-help .btn-row{margin-top:.35rem;flex-wrap:nowrap;gap:.4rem}
+.talk-help .btn{min-height:0;padding:.3rem .75rem;font-size:.85rem;border-width:2px}
 .mood-cues{font-size:.8rem;color:var(--ink-soft)}
 .mood-card{display:grid;grid-template-columns:1fr auto;column-gap:.6rem;align-items:center}
 .mood-card p{grid-column:1}
@@ -922,6 +926,13 @@ footer a{color:#fff}
   </div>
   <div class="talk-controls">
     <div class="btn-row talk-urgent" id="talk-urgent" hidden></div>
+    <div class="talk-help" id="talk-help" hidden>
+      <p id="talk-help-text"></p>
+      <div class="btn-row">
+        <a class="btn btn-secondary" id="talk-help-open" hidden>เปิดในเบราว์เซอร์</a>
+        <button class="btn btn-ghost" type="button" id="talk-help-copy">คัดลอกลิงก์</button>
+      </div>
+    </div>
     <div class="mood-card" id="talk-mood" hidden>
       <p id="talk-mood-text"></p>
       <p class="mood-cues" id="talk-mood-cues"></p>
@@ -1149,6 +1160,14 @@ const Mascot = (() => {
 })();
 
 /* ================= Thai text-to-speech ================= */
+// In-app browsers (LINE, Facebook, Instagram…) often block the microphone; '' in a normal browser.
+const inAppBrowser = (ua => /\bLine\//i.test(ua) ? 'LINE' : /FBAN|FBAV|FB_IAB|Messenger/i.test(ua) ? 'Facebook' : /Instagram/i.test(ua) ? 'Instagram'
+  : /TikTok|musical_ly/i.test(ua) ? 'TikTok' : '')(navigator.userAgent);
+const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+// iPhones mute Web Audio with the silent switch unless the page says it plays media ('playback');
+// while the mic is on it must be 'play-and-record'. Safari 16.4+; elsewhere this does nothing.
+function audioSession(type) { try { if (navigator.audioSession) navigator.audioSession.type = type; } catch (e) { /* not supported */ } }
+
 const Speech = (() => {
   const synth = window.speechSynthesis;
   const supported = !!synth && typeof window.SpeechSynthesisUtterance === 'function';
@@ -1222,7 +1241,13 @@ const Speech = (() => {
   const AC = window.AudioContext || window.webkitAudioContext;
   let actx = null, src = null, meterRaf = 0, cloudRestUntil = 0, cloudOff = false, quietUntil = 0;
   const clips = new Map(); // name -> Promise<AudioBuffer>; a missing clip stays rejected
+  let silentTip = false, noVoiceShown = false;
   function unlock() {
+    if (!Recorder.active) audioSession('playback');
+    if (isIOS && !navigator.audioSession && !silentTip) {
+      silentTip = true;
+      toast('ถ้าไม่ได้ยินเสียง ให้ปิดโหมดเงียบ (สวิตช์ข้างเครื่อง) แล้วเพิ่มเสียงนะคะ', 'info', 6000);
+    }
     if (!AC) return;
     if (!actx) actx = new AC();
     if (actx.state === 'suspended') actx.resume().catch(() => {});
@@ -1329,6 +1354,12 @@ const Speech = (() => {
     cloudOff = true;
     toast('ตอนนี้เสียงน้องสุขใจจากเซิร์ฟเวอร์ใช้ไม่ได้ (แต้มเสียง Botnoi อาจหมด) จะใช้เสียงในเครื่องแทนค่ะ', 'info', 6000);
   }
+  // Said once a visit: neither a recorded, cloud or device voice can speak, so she talks silently.
+  function noVoice() {
+    if (noVoiceShown) return;
+    noVoiceShown = true;
+    toast('เครื่องนี้ยังไม่มีเสียงอ่านภาษาไทย น้องสุขใจจึงพูดแบบไม่มีเสียง อ่านข้อความบนจอได้ หรือติดตั้งเสียงภาษาไทยในการตั้งค่าเครื่อง (หัวข้อ “แปลงข้อความเป็นเสียง”)', 'warn', 9000);
+  }
   // No voice at all: move the mouth silently for about as long as the text would take.
   function speakSilent(text, opts) {
     stopCloud();
@@ -1350,7 +1381,8 @@ const Speech = (() => {
   // late: a recorded or cloud voice already failed, so the caller has been told speech started.
   function speakNext(text, opts, late) {
     if (opts.cloud && cloudReady()) return speakCloud(text, opts);
-    if (opts.fallback === 'silent' || (late && !available())) return speakSilent(text, opts);
+    if (opts.fallback === 'silent') return speakSilent(text, opts);
+    if (late && !available()) { noVoice(); return speakSilent(text, opts); }
     return speakDevice(text, opts);
   }
   function speakDevice(text, opts = {}) {
@@ -1405,7 +1437,7 @@ const Speech = (() => {
   }
   // false only when we know for sure Thai speech cannot work here
   function available() { loadVoices(); return supported && !broken && !(voicesKnown && !voice); }
-  return { speak, stop, available, unlock, chirp, get supported() { return supported; }, get mode() { return mode; } };
+  return { speak, stop, available, unlock, chirp, noVoice, get supported() { return supported; }, get mode() { return mode; } };
 })();
 
 // Spell emergency numbers digit by digit so TTS doesn't read "one thousand six hundred…"
@@ -2849,9 +2881,10 @@ const Recorder = (() => {
     if (!AC || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { const e = new Error('unsupported'); e.name = 'Unsupported'; throw e; }
     ctx = new AC(); // created inside the tap so iOS lets it run
     const resumed = ctx.resume();
+    audioSession('play-and-record');
     try {
       stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true, channelCount: 1 } });
-    } catch (e) { ctx.close(); ctx = null; throw e; }
+    } catch (e) { ctx.close(); ctx = null; audioSession('playback'); throw e; }
     // resume() can stay pending forever (e.g. no real user gesture); never block on it.
     await Promise.race([resumed.catch(() => {}), new Promise(r => setTimeout(r, 1500))]);
     src = ctx.createMediaStreamSource(stream);
@@ -2880,6 +2913,7 @@ const Recorder = (() => {
     stream.getTracks().forEach(t => t.stop());
     const rate = ctx.sampleRate;
     ctx.close(); ctx = null;
+    audioSession('playback');
     let n = 0;
     chunks.forEach(c => { n += c.length; });
     const all = new Float32Array(n);
@@ -2936,7 +2970,8 @@ const Ai = (() => {
     consent: $('#talk-consent'), consentTitle: $('#consent-title'),
     moodBox: $('#talk-mood'), moodText: $('#talk-mood-text'), moodCues: $('#talk-mood-cues'), moodAsk: $('#talk-mood-ask'),
     moodToggle: $('#talk-mood-toggle'), quiz: $('#talk-quiz'), quizForm: $('#quiz-form'), quizTitle: $('#quiz-title'),
-    quizIntro: $('#quiz-intro'), quizQs: $('#quiz-qs'), quizResult: $('#quiz-result')
+    quizIntro: $('#quiz-intro'), quizQs: $('#quiz-qs'), quizResult: $('#quiz-result'),
+    help: $('#talk-help'), helpText: $('#talk-help-text'), helpOpen: $('#talk-help-open')
   };
   // v2: consent now also covers Botnoi voicing the replies, so earlier consent is asked again.
   const CONSENT_KEY = 'sj-ai-consent-v2';
@@ -3122,6 +3157,7 @@ const Ai = (() => {
     setTimeout(() => Mascot.wave(2600), reduce.matches ? 0 : 1250);
     setState('idle');
     updateMode();
+    showHelp();
     if (Ai.configured() && !hasConsent()) showConsent();
     else el.title.focus();
   }
@@ -3166,8 +3202,31 @@ const Ai = (() => {
     toast('ถอนความยินยอมแล้ว จะไม่ส่งเสียงหรือข้อความไปยัง AI อีก', 'info', 4000);
   });
 
+  // In-app browsers and browsers without a microphone API: say so before the first tap, and
+  // offer a way out (LINE opens the link in the phone's browser when it carries openExternalBrowser=1).
+  function showHelp() {
+    const micApi = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+    el.help.hidden = !Ai.configured() || (!inAppBrowser && micApi);
+    if (el.help.hidden) return;
+    el.helpText.textContent = inAppBrowser
+      ? `ในแอป ${inAppBrowser} ไมค์มักใช้ไม่ได้ เปิดใน Safari หรือ Chrome แทนนะคะ`
+      : 'เบราว์เซอร์นี้ใช้ไมค์ไม่ได้ เปิดใน Safari หรือ Chrome แทนนะคะ';
+    el.helpOpen.hidden = inAppBrowser !== 'LINE';
+    if (inAppBrowser === 'LINE') { const u = new URL(location.href); u.searchParams.set('openExternalBrowser', '1'); el.helpOpen.href = u.href; }
+  }
+  $('#talk-help-copy').addEventListener('click', async () => {
+    const link = location.origin + location.pathname;
+    try { await navigator.clipboard.writeText(link); toast('คัดลอกลิงก์แล้ว วางในช่องที่อยู่ของ Safari หรือ Chrome ได้เลย', 'info', 5000); }
+    catch (e) { toast('คัดลอกลิงก์นี้ไปเปิดใน Safari หรือ Chrome: ' + link, 'info', 12000); }
+  });
+
   function micError(err) {
     const n = err && err.name;
+    if (n === 'Unsupported' || (inAppBrowser && n === 'NotAllowedError')) {
+      showHelp();
+      el.help.hidden = false;
+      return `แอป ${inAppBrowser || 'นี้'} ใช้ไมค์ไม่ได้ พิมพ์คุยแทนได้ค่ะ`;
+    }
     if (n === 'NotAllowedError' || n === 'SecurityError') return 'ไม่ได้รับอนุญาตให้ใช้ไมโครโฟน กดไอคอนแม่กุญแจข้างแถบที่อยู่ เลือกอนุญาตไมโครโฟน แล้วลองใหม่';
     if (n === 'NotFoundError' || n === 'OverconstrainedError') return 'ไม่พบไมโครโฟนในอุปกรณ์นี้ พิมพ์คุยแทนได้ค่ะ';
     if (n === 'NotReadableError') return 'ไมโครโฟนถูกใช้งานโดยแอปอื่นอยู่ ปิดแอปนั้นแล้วลองใหม่';
@@ -3301,6 +3360,7 @@ const Ai = (() => {
     const cloud = aiOn() && !r.urgent;
     const spoke = (cloud || Speech.available()) && Speech.speak(speakable(text), { quiet: true, onend: done, rate: r.slow ? 0.78 : undefined, cloud, clip: cloud ? r.clip : undefined });
     if (!spoke) {
+      Speech.noVoice();
       const ms = Math.min(6000, 600 + text.length * 50);
       Mascot.talkFor(ms);
       clearTimeout(fakeTalkTimer);
