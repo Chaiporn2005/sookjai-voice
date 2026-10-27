@@ -1268,6 +1268,24 @@ const Speech = (() => {
     }
     return clips.get(name);
   }
+  // Several recordings as one line: silence at their edges is trimmed and a short pause put between.
+  function joinClips(names) {
+    return Promise.all(names.map(clip)).then(bufs => {
+      const rate = bufs[0].sampleRate, gap = Math.round(rate * 0.12), pad = Math.round(rate * 0.03);
+      const parts = bufs.map(b => {
+        const d = b.getChannelData(0);
+        let s = 0, e = d.length - 1;
+        while (s < e && Math.abs(d[s]) < 0.01) s++;
+        while (e > s && Math.abs(d[e]) < 0.01) e--;
+        return d.subarray(Math.max(0, s - pad), Math.min(d.length, e + pad));
+      });
+      const out = actx.createBuffer(1, parts.reduce((n, p) => n + p.length + gap, 0), rate);
+      const o = out.getChannelData(0);
+      let at = 0;
+      parts.forEach(p => { o.set(p, at); at += p.length + gap; });
+      return out;
+    });
+  }
   // A short two-note "boing" for taps on the mascot, made here so it needs no file.
   function chirp() {
     unlock();
@@ -1371,11 +1389,13 @@ const Speech = (() => {
     return true;
   }
   // opts.clip: a recorded line in voice/; when it is missing, the cloud or device voice reads the text.
+  // opts.clips: recorded pieces played in order as one line (all of them must exist).
   // opts.cloud: use the cloud voice when it is ready (talk screen with AI consent).
   // opts.fallback: 'silent' moves the mouth without sound rather than use the device voice.
   // quiet: skip the "no voice" toasts (the chat falls back to a silent talking animation instead).
   function speak(text, opts = {}) {
     if (opts.clip && AC) return speakAudio('clip', () => clip(opts.clip), text, opts, (err, o) => speakNext(text, o, true));
+    if (opts.clips && AC) return speakAudio('clip', () => joinClips(opts.clips), text, opts, (err, o) => speakNext(text, o, true));
     return speakNext(text, opts, false);
   }
   // late: a recorded or cloud voice already failed, so the caller has been told speech started.
@@ -2539,10 +2559,12 @@ const ChatBrain = (() => {
     if (m.flags.has('self_harm')) return selfHarm();
     const syms = SymptomCore.SYMPTOMS.filter(s => m.symptoms.has(s.id));
     const flags = SymptomCore.FLAGS.filter(f => m.flags.has(f.id));
-    const urgent = syms.filter(s => s.base === 3).map(s => s.label).concat(flags.filter(f => f.level === 3).map(f => f.label));
-    if (urgent.length) {
+    const urgentSyms = syms.filter(s => s.base === 3), urgentFlags = flags.filter(f => f.level === 3);
+    if (urgentSyms.length || urgentFlags.length) {
+      const urgent = urgentSyms.map(s => s.label).concat(urgentFlags.map(f => f.label));
       return { mood: 'concern', surprise: true, urgent: true,
         text: `อาการ “${urgent.join(', ')}” อาจเป็นภาวะฉุกเฉินค่ะ อย่ารอดูอาการ โทร 1669 ทันที หรือไปห้องฉุกเฉินที่ใกล้ที่สุดนะคะ`,
+        clips: ['chat-urgent', ...nameClips(urgentSyms, urgentFlags), 'chat-urgent-end'],
         actions: [tel('โทร 1669', '1669'), { label: 'ดูคำแนะนำระหว่างรอ', check: raw }] };
     }
     // 2) Other recognised symptoms: one self-care hint, then offer the full rule-based check.
@@ -2551,6 +2573,7 @@ const ChatBrain = (() => {
       const hint = syms.length ? ` เบื้องต้น: ${syms[0].care[0]}` : '';
       return { mood: 'curious',
         text: `หนูเจออาการ “${names.join(', ')}” ค่ะ${hint} ให้หนูช่วยประเมินต่อไหมคะ จะได้รู้สัญญาณอันตรายและว่าควรพบแพทย์เมื่อไร`,
+        clips: ['chat-found', ...nameClips(syms, flags), ...(syms.length ? ['chat-care-' + syms[0].id, 'chat-found-end'] : ['chat-found-end-ka'])],
         actions: [{ label: 'ประเมินอาการนี้', check: raw }] };
     }
     // 3) Small talk and how-to intents.
@@ -2566,11 +2589,27 @@ const ChatBrain = (() => {
     text: 'หืม หนูยังไม่เข้าใจข้อความนี้ค่ะ ลองพิมพ์อาการ เช่น “ปวดหัว” หรือเลือกจากปุ่มด้านล่างนะคะ ถ้าฉุกเฉินโทร 1669 ทันที' });
   const greeting = () => ({ mood: 'excited', pose: 'wave', clip: 'chat-welcome',
     text: 'สวัสดีค่ะ! หนูน้องสุขใจ พิมพ์คุยกับหนู หรือกดปุ่มด้านล่างได้เลยนะคะ หนูช่วยเรื่องวัดชีพจร เช็กอาการเบื้องต้น และข้อมูลฉุกเฉินค่ะ' });
-  // Every fixed reply that has a recording, as [clip, text]; tools/make-voice.mjs records these.
-  // Replies that name the user's symptoms change each time, so they use the device voice.
+  // Replies that name the user's symptoms change each time, so they are voiced from recorded
+  // pieces played in order: intro, each symptom's name, the first symptom's hint, ending.
+  const PIECES = {
+    'chat-found': 'หนูเจออาการ',
+    'chat-found-end': 'ให้หนูช่วยประเมินต่อไหมคะ จะได้รู้สัญญาณอันตรายและว่าควรพบแพทย์เมื่อไร',
+    'chat-found-end-ka': 'ค่ะ ให้หนูช่วยประเมินต่อไหมคะ จะได้รู้สัญญาณอันตรายและว่าควรพบแพทย์เมื่อไร',
+    'chat-urgent': 'อาการ',
+    'chat-urgent-end': 'อาจเป็นภาวะฉุกเฉินค่ะ อย่ารอดูอาการ โทร 1669 ทันที หรือไปห้องฉุกเฉินที่ใกล้ที่สุดนะคะ'
+  };
+  const nameClips = (syms, flags) => syms.map(s => 'chat-sym-' + s.id).concat(flags.map(f => 'chat-flag-' + f.id));
+  // Every recording the chat uses, as [clip, text]; tools/make-voice.mjs records these.
   function lines() {
     const all = [greeting(), selfHarm(), notUnderstood()].concat(...INTENTS.map(it => TIPS.map((_, n) => it.r(n))));
-    return [...new Map(all.filter(r => r.clip).map(r => [r.clip, r.text]))];
+    const out = new Map(all.filter(r => r.clip).map(r => [r.clip, r.text]));
+    Object.entries(PIECES).forEach(([k, t]) => out.set(k, t));
+    SymptomCore.SYMPTOMS.forEach(s => {
+      out.set('chat-sym-' + s.id, s.label);
+      if (s.base !== 3) out.set('chat-care-' + s.id, 'ค่ะ เบื้องต้น ' + s.care[0]); // emergencies get the urgent reply instead
+    });
+    SymptomCore.FLAGS.filter(f => f.id !== 'self_harm').forEach(f => out.set('chat-flag-' + f.id, f.label)); // self-harm has its own reply
+    return [...out];
   }
   return { reply, greeting, lines };
 })();
@@ -2673,8 +2712,8 @@ const ChatBrain = (() => {
         else Mascot.express(r.mood, 50);
         if (r.pose) Mascot.pose(r.pose, 2800);
         updateVoiceBtn();
-        // Fixed replies play their recording (same voice as the talk screen); the rest use the device voice.
-        const spoke = voiceOn && (r.clip || Speech.available()) && Speech.speak(speakable(r.text), { quiet: true, clip: r.clip });
+        // Replies play their recording, or recorded pieces (same voice as the talk screen); without them, the device voice.
+        const spoke = voiceOn && (r.clip || r.clips || Speech.available()) && Speech.speak(speakable(r.text), { quiet: true, clip: r.clip, clips: r.clips });
         if (!spoke) Mascot.talkFor(Math.min(4500, r.text.length * 50));
         setTimeout(updateVoiceBtn, 1200); // reflect a synthesis failure on this device
         done();
@@ -3358,7 +3397,7 @@ const Ai = (() => {
     // AI mode uses the cloud voice (or a recording of a fixed line); urgent answers use the device
     // voice so nothing delays them.
     const cloud = aiOn() && !r.urgent;
-    const spoke = (cloud || Speech.available()) && Speech.speak(speakable(text), { quiet: true, onend: done, rate: r.slow ? 0.78 : undefined, cloud, clip: cloud ? r.clip : undefined });
+    const spoke = (cloud || Speech.available()) && Speech.speak(speakable(text), { quiet: true, onend: done, rate: r.slow ? 0.78 : undefined, cloud, clip: cloud ? r.clip : undefined, clips: cloud ? r.clips : undefined });
     if (!spoke) {
       Speech.noVoice();
       const ms = Math.min(6000, 600 + text.length * 50);
