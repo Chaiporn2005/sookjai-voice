@@ -1,0 +1,15 @@
+name = "sookjai-ai"
+main = "worker.js"
+compatibility_date = "2025-09-01"
+
+[vars]
+# Sites allowed to call this Worker. "http://localhost" allows any local port for testing.
+ALLOWED_ORIGINS = "https://chaiporn2005.github.io,http://localhost,http://127.0.0.1"
+
+# Voice for the replies (Botnoi). Default: speaker 23 (โบ / Bow V2) from the V2 list.
+# BOTNOI_SPEAKER = "65"   # e.g. คุณงาม / Ngam (V2)
+# BOTNOI_VERSION = "v1"   # V1 voices cost half; V1 and V2 speaker IDs differ (Bow is 2 in V1)
+
+# API keys are secrets, never put them here. Set them with:
+#   npx wrangler secret put TYPHOON_API_KEY
+#   npx wrangler secret put BOTNOI_TOKEN

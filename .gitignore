@@ -1,0 +1,8 @@
+# Hackathon instructions file (not ours to publish)
+Skill_AI_for_All_Thailand_hackathon.md
+# Editor and local tooling
+.vscode/
+.wrangler/
+.dev.vars
+node_modules/
+*.log
