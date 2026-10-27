@@ -262,6 +262,16 @@ main{display:block}
 .chat-form .input{flex:1;min-width:0;max-width:none;min-height:48px}
 .chat-form .btn{min-height:48px;padding:.3rem 1rem}
 .chat-note{font-size:.72rem;color:var(--ink-soft);padding:0 .9rem .55rem;margin:0;flex:none;line-height:1.4}
+/* Saved history: a date line between visits, and where a message came from */
+.chat-day{align-self:center;margin:.3rem 0 0;padding:.1rem .7rem;border-radius:999px;background:var(--primary-soft);font-size:.75rem;font-weight:700;color:var(--ink-soft)}
+.msg .via{display:block;font-size:.72rem;font-weight:700;opacity:.75;margin-bottom:.1rem}
+.msg.old{animation:none}
+.history-card{width:100%;display:flex;flex-direction:column;gap:.5rem;overflow:hidden}
+.history-top{display:flex;align-items:center;gap:.5rem}
+.history-top h3{flex:1;margin:0}
+.history-card .chat-log{flex:1 1 auto;min-height:0;padding:.4rem .1rem;border-block:2px solid var(--line)}
+.history-card .btn-row{justify-content:flex-end}
+.history-card .talk-note{text-align:left}
 
 /* ============ Voice talk (full screen, Airlearn-style) ============ */
 .talk{position:fixed;inset:0;z-index:70;display:flex;flex-direction:column;
@@ -845,9 +855,9 @@ footer a{color:#fff}
         <li>วัดชีพจร เช็กอาการ และแชตแบบพิมพ์ ทำงาน<strong>ในเบราว์เซอร์ของคุณ</strong> ไม่ส่งข้อมูลสุขภาพหรือภาพจากกล้องออกไป</li>
         <li><strong>โหมดคุยด้วยเสียงกับ AI</strong> ส่งเสียงและข้อความที่คุณพูดไปยัง AI Typhoon (SCB 10X) และส่งคำตอบไปสร้างเสียงที่ Botnoi Voice ผ่านเซิร์ฟเวอร์ของทีม ใช้ได้หลังกดยินยอมเท่านั้น เมื่อยินยอมแล้ว คำตอบในแชตแบบพิมพ์ที่ยังไม่มีเสียงอัดไว้ (เช่น คำตอบที่บอกชื่ออาการ) ก็จะส่งไปสร้างเสียงที่ Botnoi ด้วย แต่ข้อความที่คุณพิมพ์ไม่ถูกส่ง และถอนความยินยอมได้ในหน้าคุยด้วยเสียง</li>
         <li>ถ้าพูดถึงอาการฉุกเฉิน แอปตอบเองทันทีโดยไม่ส่งให้ AI</li>
-        <li>ไม่บันทึกอาการ ผลการวัด หรือบทสนทนาไว้ถาวร ปิดหน้าแล้วข้อมูลหายไป</li>
+        <li>ไม่บันทึกอาการหรือผลการวัดไว้ ปิดหน้าแล้วข้อมูลหายไป</li>
         <li><strong>สังเกตน้ำเสียง (ทดลอง ต้องเปิดเอง)</strong> วัดน้ำเสียงในเครื่อง ส่งให้ AI แค่ผลเปรียบเทียบ เช่น “พูดเร็วกว่าปกติ” ไม่ส่งตัวเลขเสียงของคุณ</li>
-        <li>สิ่งที่จำไว้ในเครื่องมีเพียง<strong>ขนาดตัวอักษร</strong> การยินยอมใช้ AI และค่าน้ำเสียงปกติของคุณ (เฉพาะเมื่อเปิดสังเกตน้ำเสียง ปิดแล้วลบทิ้ง)</li>
+        <li>สิ่งที่จำไว้ในเครื่องมีเพียง<strong>ขนาดตัวอักษร</strong> การยินยอมใช้ AI <strong>ประวัติการคุย</strong> (กดลบได้ในหน้าแชตหรือหน้าคุยด้วยเสียง) และค่าน้ำเสียงปกติของคุณ (เฉพาะเมื่อเปิดสังเกตน้ำเสียง ปิดแล้วลบทิ้ง)</li>
         <li>สิ่งเดียวที่หน้าเว็บโหลดจากอินเทอร์เน็ตคือฟอนต์ Peralta จาก Google Fonts ถ้าออฟไลน์จะใช้ฟอนต์ในเครื่องแทน</li>
       </ul>
     </div>
@@ -909,13 +919,14 @@ footer a{color:#fff}
     <input class="input" id="chat-text" type="text" placeholder="พิมพ์ เช่น ปวดหัว, วัดชีพจรยังไง" enterkeyhint="send" maxlength="300">
     <button class="btn" type="submit">ส่ง</button>
   </form>
-  <p class="chat-note">น้องสุขใจตอบตามกฎที่ตั้งไว้ (ไม่ใช่ AI) ไม่วินิจฉัยโรค ไม่แนะนำยา และข้อความไม่ถูกส่งออกจากเครื่องของคุณ</p>
+  <p class="chat-note">น้องสุขใจตอบตามกฎที่ตั้งไว้ (ไม่ใช่ AI) ไม่วินิจฉัยโรค ไม่แนะนำยา ข้อความที่พิมพ์ไม่ถูกส่งออกจากเครื่อง ประวัติแชตเก็บไว้ในเครื่องนี้เท่านั้น · <button class="linklike" type="button" id="chat-clear">ลบประวัติแชต</button></p>
 </section>
 
 <section class="talk" id="talk" role="dialog" aria-modal="true" aria-labelledby="talk-title" hidden>
   <div class="talk-top">
     <h2 id="talk-title" tabindex="-1">คุยกับน้องสุขใจ</h2>
     <span class="badge badge-real" id="talk-mode">ออฟไลน์</span>
+    <button class="btn btn-ghost" type="button" id="talk-history-open" aria-haspopup="dialog">🕘 ประวัติ</button>
     <button class="btn btn-ghost" type="button" id="talk-close" aria-label="ปิดโหมดคุยด้วยเสียง">✕</button>
   </div>
   <div class="talk-stage"><span class="mascot" id="talk-mascot" data-mascot role="img" aria-label="น้องสุขใจ กระรอกน้อย"></span></div>
@@ -961,7 +972,7 @@ footer a{color:#fff}
         <li>อย่าบอกชื่อจริง เลขบัตรประชาชน ที่อยู่ หรือข้อมูลที่ระบุตัวตนได้</li>
         <li>AI อาจตอบผิดพลาด ไม่ใช่แพทย์ ไม่วินิจฉัยโรค และไม่แนะนำยา</li>
         <li>ถ้าพูดถึงอาการฉุกเฉิน แอปจะตอบเองทันทีโดยไม่ส่งให้ AI และแนะนำโทร 1669</li>
-        <li>แอปไม่บันทึกบทสนทนา ปิดหน้าแล้วหายไป การเก็บข้อมูลฝั่งผู้ให้บริการ AI เป็นไปตามนโยบายของผู้ให้บริการ</li>
+        <li>ประวัติการคุยเก็บไว้ในเครื่องนี้เท่านั้น เพื่อให้กลับมาอ่านได้ (กด 🕘 ประวัติ) และลบได้ทุกเมื่อ การเก็บข้อมูลฝั่งผู้ให้บริการ AI เป็นไปตามนโยบายของผู้ให้บริการ</li>
       </ul>
       <label class="chip consent-opt"><input type="checkbox" id="consent-mood"><span><strong>ทดลอง (เลือกได้): ให้น้องสุขใจสังเกตน้ำเสียง</strong> ว่าคุณอาจเครียด กังวล เศร้า หรือเหนื่อย แอปวัดระดับเสียง ความเร็ว และการหยุดพูด<strong>ในเครื่องนี้</strong> เทียบกับเสียงปกติของคุณที่จำไว้ในเครื่องนี้เท่านั้น แล้วส่งให้ AI แค่ผลเปรียบเทียบ เช่น “พูดเร็วกว่าปกติ” ผลเป็นการเดา ไม่ใช่การวินิจฉัย ปิดได้ทุกเมื่อ</span></label>
       <div class="btn-row">
@@ -982,6 +993,17 @@ footer a{color:#fff}
       </div>
       <p class="talk-note">แบบประเมินของกรมสุขภาพจิต ใช้คัดกรองเบื้องต้น ไม่ใช่การวินิจฉัย คำตอบอยู่ในเครื่องนี้ ไม่ส่งให้ AI และไม่บันทึกไว้</p>
     </form>
+  </div>
+  <div class="consent" id="talk-history" hidden>
+    <div class="consent-card history-card" role="document">
+      <div class="history-top">
+        <h3 id="history-title" tabindex="-1">ประวัติการคุย</h3>
+        <button class="btn btn-ghost" type="button" id="history-close">ปิด</button>
+      </div>
+      <ol class="chat-log" id="history-log" aria-labelledby="history-title"></ol>
+      <div class="btn-row"><button class="btn btn-ghost" type="button" id="history-clear">ลบประวัติทั้งหมด</button></div>
+      <p class="talk-note">รวมทั้งคุยด้วยเสียงและแชตแบบพิมพ์ เก็บไว้ในเครื่องนี้เท่านั้น ไม่ส่งออกไปไหน ถ้าใช้เครื่องร่วมกับคนอื่น กดลบได้ทุกเมื่อ</p>
+    </div>
   </div>
 </section>
 
@@ -2629,11 +2651,47 @@ const Consent = (() => {
   };
 })();
 
+// What was said in the typed chat and the voice talk, kept only in this browser so it can be read
+// again later. Shared by both: each listens for the other's messages, and for clearing (null).
+const ChatHistory = (() => {
+  const KEY = 'sj-chat-history-v1', MAX = 120, GAP = 30 * 60 * 1000;
+  const subs = [];
+  let mem = []; // when storage is blocked, this visit only
+  function list() {
+    try { const a = JSON.parse(localStorage.getItem(KEY) || 'null'); return Array.isArray(a) ? a : mem; } catch (e) { return mem; }
+  }
+  function save(a) {
+    mem = a.slice(-MAX);
+    try { if (mem.length) localStorage.setItem(KEY, JSON.stringify(mem)); else localStorage.removeItem(KEY); } catch (e) { /* this visit only */ }
+  }
+  return {
+    list,
+    // who: 'user' | 'bot'; src: 'chat' | 'talk'; r: the reply (its urgency and buttons are kept)
+    add(who, text, src, r = {}) {
+      const e = { who, text, src, at: Date.now() };
+      if (r.urgent) e.urgent = true;
+      if (r.actions && r.actions.length) e.actions = r.actions;
+      save(list().concat([e]));
+      subs.forEach(fn => fn(e));
+    },
+    clear() { save([]); subs.forEach(fn => fn(null)); },
+    on(fn) { subs.push(fn); },
+    // A date line before the first message and after a pause of 30 minutes or more.
+    divider(at, prevAt) {
+      if (prevAt && at - prevAt < GAP) return null;
+      const li = document.createElement('li');
+      li.className = 'chat-day';
+      li.textContent = new Date(at).toLocaleString('th-TH', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+      return li;
+    }
+  };
+})();
+
 (function initChat() {
   const chat = $('#chat'), log = $('#chat-log'), form = $('#chat-form'), input = $('#chat-text');
   const fab = $('#chat-fab'), voiceBtn = $('#chat-voice'), stage = $('#chat-mascot');
   const reduce = matchMedia('(prefers-reduced-motion: reduce)');
-  let voiceOn = true, greeted = false, counter = 0, queue = Promise.resolve();
+  let voiceOn = true, greeted = false, counter = 0, queue = Promise.resolve(), lastAt = 0;
 
   const QUICK = [['❤️ วัดชีพจร', 'วัดชีพจรยังไง'], ['📋 เช็กอาการ', 'ไม่สบาย อยากเช็กอาการ'], ['🚑 ฉุกเฉิน', 'ฉุกเฉิน ต้องทำยังไง'],
     ['💡 เคล็ดลับสุขภาพ', 'ขอเคล็ดลับสุขภาพ'], ['🔒 ข้อมูลปลอดภัยไหม', 'ข้อมูลปลอดภัยไหม'], ['🐿️ น้องสุขใจคือใคร', 'น้องสุขใจเป็นใคร']];
@@ -2672,16 +2730,29 @@ const Consent = (() => {
     f.requestSubmit();
   }
 
+  // opts: a reply, or a saved history entry (which has its time, `at`, and where it was said, `src`)
   function addMsg(who, text, opts = {}) {
+    const at = opts.at || Date.now();
+    const day = ChatHistory.divider(at, lastAt);
+    if (day) log.appendChild(day);
+    lastAt = at;
     const li = document.createElement('li');
-    li.className = `msg ${who}${opts.urgent ? ' is-urgent' : ''}`;
+    li.className = `msg ${who}${opts.urgent ? ' is-urgent' : ''}${opts.at ? ' old' : ''}`;
+    if (opts.src === 'talk') {
+      const via = document.createElement('span');
+      via.className = 'via';
+      via.textContent = '🎙️ คุยด้วยเสียง';
+      li.appendChild(via);
+    }
     const body = document.createElement('div');
     body.textContent = text;
     li.appendChild(body);
-    if (opts.actions && opts.actions.length) {
+    // Buttons this panel can act on (the talk screen's quiz buttons are left out).
+    const actions = (opts.actions || []).filter(a => a.href || a.go || a.check != null || a.demo || a.size);
+    if (actions.length) {
       const row = document.createElement('div');
       row.className = 'btn-row';
-      opts.actions.forEach(a => {
+      actions.forEach(a => {
         let b;
         if (a.href) {
           b = document.createElement('a');
@@ -2720,6 +2791,7 @@ const Consent = (() => {
       setTimeout(() => {
         typing.remove();
         addMsg('bot', r.text, r);
+        if (!r.greeting) ChatHistory.add('bot', r.text, 'chat', r);
         Mascot.setBase(r.mood === 'concern' ? 'concern' : 'happy');
         if (r.surprise) Mascot.express('surprised', 900);
         else if (r.mood !== 'concern' && r.mood !== 'happy') Mascot.express(r.mood, 2600);
@@ -2741,15 +2813,25 @@ const Consent = (() => {
     const t = text.trim();
     if (!t) return;
     addMsg('user', t);
+    ChatHistory.add('user', t, 'chat');
     botSay(ChatBrain.reply(t, counter++));
   }
+
+  // Earlier conversations, then messages from the voice talk as they happen.
+  ChatHistory.list().forEach(e => addMsg(e.who, e.text, e));
+  ChatHistory.on(e => {
+    if (!e) { log.textContent = ''; lastAt = 0; greeted = false; return; }
+    if (e.src === 'talk') addMsg(e.who, e.text, e);
+  });
 
   function open() {
     chat.hidden = false;
     fab.hidden = true;
     fab.setAttribute('aria-expanded', 'true');
     Mascot.walkIn(stage);
-    if (!greeted) { greeted = true; botSay(ChatBrain.greeting()); }
+    log.scrollTop = log.scrollHeight; // it could not scroll while hidden
+    // The greeting isn't saved, so it doesn't pile up in the history.
+    if (!greeted) { greeted = true; botSay({ ...ChatBrain.greeting(), greeting: true }); }
     if (matchMedia('(pointer: fine)').matches) input.focus();
     else $('#chat-title').focus();
   }
@@ -2766,6 +2848,13 @@ const Consent = (() => {
   $('#chat-close').addEventListener('click', () => close());
   $('#chat-quick').addEventListener('click', e => { const b = e.target.closest('[data-say]'); if (b) userSay(b.dataset.say); });
   form.addEventListener('submit', e => { e.preventDefault(); userSay(input.value); input.value = ''; });
+  $('#chat-clear').addEventListener('click', () => {
+    if (!ChatHistory.list().length) { toast('ยังไม่มีประวัติแชตค่ะ', 'info', 3000); return; }
+    if (!confirm('ลบประวัติการคุยทั้งหมดในเครื่องนี้ไหมคะ')) return;
+    ChatHistory.clear();
+    toast('ลบประวัติการคุยแล้วค่ะ', 'info', 3000);
+    if (!chat.hidden) { greeted = true; botSay({ ...ChatBrain.greeting(), greeting: true }); }
+  });
   document.addEventListener('keydown', e => { if (e.key === 'Escape' && !chat.hidden) close(); });
 })();
 
@@ -3027,7 +3116,8 @@ const Ai = (() => {
     moodBox: $('#talk-mood'), moodText: $('#talk-mood-text'), moodCues: $('#talk-mood-cues'), moodAsk: $('#talk-mood-ask'),
     moodToggle: $('#talk-mood-toggle'), quiz: $('#talk-quiz'), quizForm: $('#quiz-form'), quizTitle: $('#quiz-title'),
     quizIntro: $('#quiz-intro'), quizQs: $('#quiz-qs'), quizResult: $('#quiz-result'),
-    help: $('#talk-help'), helpText: $('#talk-help-text'), helpOpen: $('#talk-help-open')
+    help: $('#talk-help'), helpText: $('#talk-help-text'), helpOpen: $('#talk-help-open'),
+    history: $('#talk-history'), historyLog: $('#history-log'), historyTitle: $('#history-title')
   };
   const reduce = matchMedia('(prefers-reduced-motion: reduce)');
   let state = 'idle', history = [], opener = null, fakeTalkTimer = null;
@@ -3148,6 +3238,46 @@ const Ai = (() => {
     el.quizTitle.focus();
   }
   function closeQuiz() { el.quiz.hidden = true; el.title.focus(); }
+
+  // Everything said before, in the typed chat too, newest at the bottom.
+  function openHistory() {
+    const list = ChatHistory.list();
+    el.historyLog.textContent = '';
+    let prev = 0;
+    list.forEach(e => {
+      const day = ChatHistory.divider(e.at, prev);
+      if (day) el.historyLog.appendChild(day);
+      prev = e.at;
+      const li = document.createElement('li');
+      li.className = `msg ${e.who} old${e.urgent ? ' is-urgent' : ''}`;
+      if (e.src === 'chat') li.insertAdjacentHTML('beforeend', '<span class="via">💬 แชตแบบพิมพ์</span>');
+      const body = document.createElement('div');
+      body.textContent = e.text;
+      li.appendChild(body);
+      const calls = (e.actions || []).filter(a => a.href);
+      if (calls.length) {
+        const row = document.createElement('div');
+        row.className = 'btn-row';
+        calls.forEach(a => { const b = document.createElement('a'); b.href = a.href; b.className = 'btn btn-secondary'; b.textContent = a.label; row.appendChild(b); });
+        li.appendChild(row);
+      }
+      el.historyLog.appendChild(li);
+    });
+    if (!list.length) el.historyLog.innerHTML = '<li class="chat-day">ยังไม่มีประวัติการคุยค่ะ</li>';
+    $('#history-clear').hidden = !list.length;
+    el.history.hidden = false;
+    el.historyLog.scrollTop = el.historyLog.scrollHeight;
+    el.historyTitle.focus();
+  }
+  function closeHistory() { el.history.hidden = true; $('#talk-history-open').focus(); }
+  $('#talk-history-open').addEventListener('click', openHistory);
+  $('#history-close').addEventListener('click', closeHistory);
+  $('#history-clear').addEventListener('click', () => {
+    if (!confirm('ลบประวัติการคุยทั้งหมดในเครื่องนี้ไหมคะ')) return;
+    ChatHistory.clear();
+    toast('ลบประวัติการคุยแล้วค่ะ', 'info', 3000);
+    openHistory();
+  });
   el.quizForm.addEventListener('submit', e => {
     e.preventDefault();
     const q = QUIZ[quizKind], fd = new FormData(el.quizForm);
@@ -3220,6 +3350,7 @@ const Ai = (() => {
     stopEverything();
     el.consent.hidden = true;
     el.quiz.hidden = true;
+    el.history.hidden = true;
     el.talk.hidden = true;
     document.body.style.overflow = '';
     Mascot.setBase('happy');
@@ -3339,6 +3470,7 @@ const Ai = (() => {
 
   // voice: this turn's comparison with the usual voice (see showMood), or null for typed text
   async function respond(text, voice = null) {
+    ChatHistory.add('user', text, 'talk');
     el.you.textContent = text;
     el.you.hidden = false;
     el.moodBox.hidden = true;
@@ -3398,6 +3530,7 @@ const Ai = (() => {
   }
 
   function say(text, r = {}) {
+    ChatHistory.add('bot', text, 'talk', r);
     el.bot.textContent = text;
     el.bot.classList.toggle('is-urgent', !!r.urgent);
     renderActions(r.actions, r.urgent);
@@ -3435,7 +3568,7 @@ const Ai = (() => {
     Speech.stop();
     respond(t);
   });
-  document.addEventListener('keydown', e => { if (e.key === 'Escape' && !el.talk.hidden) { if (!el.quiz.hidden) closeQuiz(); else close(); } });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && !el.talk.hidden) { if (!el.history.hidden) closeHistory(); else if (!el.quiz.hidden) closeQuiz(); else close(); } });
   document.addEventListener('visibilitychange', () => { if (document.hidden && Recorder.active) { Recorder.stop(); setState('idle', 'หยุดฟังแล้ว เพราะสลับไปหน้าจออื่น'); } });
   updateMode();
 })();
