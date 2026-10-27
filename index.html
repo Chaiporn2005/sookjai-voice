@@ -2462,39 +2462,39 @@ const ChatBrain = (() => {
   const INTENTS = [
     // Order matters: Thai has no spaces, so short words hide inside longer ones
     // (e.g. "บาย" inside "สบายดี"); keep specific intents above generic ones.
-    { words: ['สวัสดี', 'หวัดดี', 'ดีจ้า', 'hello', 'ทักทาย'], r: () => ({ mood: 'excited', pose: 'wave',
+    { words: ['สวัสดี', 'หวัดดี', 'ดีจ้า', 'hello', 'ทักทาย'], r: () => ({ clip: 'chat-hello', mood: 'excited', pose: 'wave',
       text: 'สวัสดีค่ะ! หนูน้องสุขใจ กระรอกน้อยผู้ช่วยดูแลสุขภาพ วันนี้ให้หนูช่วยอะไรดีคะ' }) },
-    { words: ['ชื่ออะไร', 'เป็นใคร', 'คือใคร', 'ตัวอะไร', 'กระรอก'], r: () => ({ mood: 'happy', pose: 'wave',
+    { words: ['ชื่ออะไร', 'เป็นใคร', 'คือใคร', 'ตัวอะไร', 'กระรอก'], r: () => ({ clip: 'chat-who', mood: 'happy', pose: 'wave',
       text: 'หนูชื่อน้องสุขใจค่ะ เป็นกระรอกน้อยที่ชอบเก็บลูกโอ๊ก และชอบช่วยทุกคนดูแลสุขภาพ หนูช่วยวัดชีพจรด้วยกล้อง เช็กอาการเบื้องต้น และบอกวิธีขอความช่วยเหลือฉุกเฉินได้ค่ะ' }) },
-    { words: ['ขอบคุณ', 'ขอบใจ', 'thank'], r: () => ({ mood: 'excited', text: 'ยินดีค่ะ! ดูแลตัวเองด้วยนะคะ หนูอยู่ตรงนี้เสมอ' }) },
-    { words: ['ชีพจร', 'หัวใจเต้น', 'วัดหัวใจ', 'pulse', 'bpm', 'ppg'], r: () => ({ mood: 'happy',
+    { words: ['ขอบคุณ', 'ขอบใจ', 'thank'], r: () => ({ clip: 'chat-thanks', mood: 'excited', text: 'ยินดีค่ะ! ดูแลตัวเองด้วยนะคะ หนูอยู่ตรงนี้เสมอ' }) },
+    { words: ['ชีพจร', 'หัวใจเต้น', 'วัดหัวใจ', 'pulse', 'bpm', 'ppg'], r: () => ({ clip: 'chat-pulse', mood: 'happy',
       text: 'วัดชีพจรง่ายๆ ค่ะ นั่งพักก่อน แล้ววางปลายนิ้วปิดกล้องหลังและไฟแฟลชให้มิด กดเบาๆ อยู่นิ่งๆ ประมาณ 25 วินาที ค่าที่ได้เป็นค่าประมาณ ไม่ใช่เครื่องมือแพทย์นะคะ',
       actions: [go('ไปวัดชีพจร', '#pulse'), { label: 'ดูโหมดสาธิต', demo: true }] }) },
-    { words: ['ฉุกเฉิน', '1669', 'ช่วยด้วย', 'รถพยาบาล'], r: () => ({ mood: 'concern', urgent: true,
+    { words: ['ฉุกเฉิน', '1669', 'ช่วยด้วย', 'รถพยาบาล'], r: () => ({ clip: 'chat-emergency', mood: 'concern', urgent: true,
       text: 'ถ้าฉุกเฉิน โทร 1669 ได้ฟรีตลอด 24 ชั่วโมงค่ะ บอกอาการ สถานที่ และเบอร์ติดต่อกลับ แล้วอย่าวางสายก่อนเจ้าหน้าที่บอกนะคะ',
       actions: [tel('โทร 1669', '1669'), go('ดูข้อมูลฉุกเฉิน', '#guidance')] }) },
-    { words: ['เครียด', 'เศร้า', 'กังวล', 'ท้อ', 'เหงา', 'นอนไม่หลับ', 'ร้องไห้', 'หมดกำลังใจ'], r: () => ({ mood: 'concern',
+    { words: ['เครียด', 'เศร้า', 'กังวล', 'ท้อ', 'เหงา', 'นอนไม่หลับ', 'ร้องไห้', 'หมดกำลังใจ'], r: () => ({ clip: 'chat-stress', mood: 'concern',
       text: 'หนูเป็นห่วงนะคะ ลองหายใจเข้าช้าๆ ลึกๆ สักครู่ แล้วพูดคุยกับคนที่ไว้ใจ ถ้าอยากคุยกับผู้เชี่ยวชาญ โทรสายด่วนสุขภาพจิต 1323 ได้ตลอด 24 ชั่วโมงค่ะ',
       actions: [tel('โทร 1323', '1323')] }) },
-    { words: ['อาการ', 'ไม่สบาย', 'ป่วย', 'เช็ก', 'เช็ค', 'ตรวจ'], r: () => ({ mood: 'curious',
+    { words: ['อาการ', 'ไม่สบาย', 'ป่วย', 'เช็ก', 'เช็ค', 'ตรวจ'], r: () => ({ clip: 'chat-unwell', mood: 'curious',
       text: 'เล่าอาการให้หนูฟังได้เลยค่ะ เช่น “ปวดหัว มีไข้” หรือไปเลือกอาการเองที่หน้าเช็กอาการก็ได้นะคะ',
       actions: [go('ไปเช็กอาการ', '#symptoms')] }) },
-    { words: ['สบายดี', 'สดชื่น', 'ดีขึ้นแล้ว', 'แข็งแรง'], r: () => ({ mood: 'excited', text: 'ดีใจด้วยค่ะ! ดูแลตัวเองแบบนี้ต่อไปนะคะ' }) },
-    { words: ['บ๊ายบาย', 'บายบาย', 'ลาก่อน', 'ไปก่อนนะ', 'bye'], r: () => ({ mood: 'happy', pose: 'wave',
+    { words: ['สบายดี', 'สดชื่น', 'ดีขึ้นแล้ว', 'แข็งแรง'], r: () => ({ clip: 'chat-feelgood', mood: 'excited', text: 'ดีใจด้วยค่ะ! ดูแลตัวเองแบบนี้ต่อไปนะคะ' }) },
+    { words: ['บ๊ายบาย', 'บายบาย', 'ลาก่อน', 'ไปก่อนนะ', 'bye'], r: () => ({ clip: 'chat-bye', mood: 'happy', pose: 'wave',
       text: 'บ๊ายบายค่ะ ถ้าไม่สบายหรือฉุกเฉิน โทร 1669 ได้เสมอนะคะ' }) },
-    { words: ['เป็นโรค', 'โรคอะไร', 'วินิจฉัย'], r: () => ({ mood: 'curious',
+    { words: ['เป็นโรค', 'โรคอะไร', 'วินิจฉัย'], r: () => ({ clip: 'chat-diagnose', mood: 'curious',
       text: 'หนูวินิจฉัยโรคไม่ได้ค่ะ ให้ได้แค่คำแนะนำทั่วไป ถ้ากังวลควรไปพบแพทย์นะคะ หรือเล่าอาการให้หนูฟัง หนูจะช่วยดูว่าควรไปหาหมอเร็วแค่ไหนค่ะ' }) },
-    { test: t => /(^|[^อ])ยา(?!บาล)/.test(t) || t.includes('รักษา'), r: () => ({ mood: 'curious',
+    { test: t => /(^|[^อ])ยา(?!บาล)/.test(t) || t.includes('รักษา'), r: () => ({ clip: 'chat-medicine', mood: 'curious',
       text: 'หนูแนะนำยาไม่ได้ค่ะ เพราะยาแต่ละชนิดเหมาะกับแต่ละคนไม่เหมือนกัน ปรึกษาเภสัชกรหรือแพทย์ดีที่สุดนะคะ ถ้ามียาที่แพทย์สั่งไว้ ให้ใช้ตามที่แพทย์แนะนำค่ะ' }) },
-    { words: ['ข้อมูล', 'ส่วนตัว', 'ปลอดภัย', 'ส่งไป', 'บันทึก'], r: () => ({ mood: 'happy',
+    { words: ['ข้อมูล', 'ส่วนตัว', 'ปลอดภัย', 'ส่งไป', 'บันทึก'], r: () => ({ clip: 'chat-privacy', mood: 'happy',
       text: 'ไม่ต้องห่วงค่ะ แชตแบบพิมพ์ เช็กอาการ และวัดชีพจร ทำงานในเครื่องของคุณ ไม่ส่งข้อมูลออกไปไหน ยกเว้นโหมดคุยด้วยเสียงกับ AI ซึ่งต้องกดยินยอมก่อนค่ะ' }) },
-    { words: ['ตัวเล็ก', 'ตัวหนังสือ', 'ตัวอักษร', 'มองไม่เห็น', 'อ่านไม่ชัด'], r: () => ({ mood: 'happy',
+    { words: ['ตัวเล็ก', 'ตัวหนังสือ', 'ตัวอักษร', 'มองไม่เห็น', 'อ่านไม่ชัด'], r: () => ({ clip: 'chat-textsize', mood: 'happy',
       text: 'กดปุ่มด้านล่างเพื่อขยายตัวอักษรได้เลยค่ะ หรือกดปุ่ม ก+ ด้านบนก็ได้นะคะ', actions: [{ label: 'ขยายตัวอักษร', size: true }] }) },
-    { words: ['ใช้ยังไง', 'วิธีใช้', 'ทำอะไรได้', 'ช่วยอะไร'], r: () => ({ mood: 'happy',
+    { words: ['ใช้ยังไง', 'วิธีใช้', 'ทำอะไรได้', 'ช่วยอะไร'], r: () => ({ clip: 'chat-howto', mood: 'happy',
       text: 'หนูช่วยได้ 3 อย่างค่ะ วัดชีพจรด้วยกล้อง เช็กอาการเบื้องต้น และบอกวิธีขอความช่วยเหลือฉุกเฉิน เลือกได้เลยนะคะ',
       actions: [go('วัดชีพจร', '#pulse'), go('เช็กอาการ', '#symptoms'), go('ฉุกเฉิน', '#guidance')] }) },
-    { words: ['เคล็ดลับ', 'สุขภาพดี', 'ดูแลตัวเอง', 'แนะนำหน่อย'], r: n => ({ mood: 'excited', text: 'เคล็ดลับวันนี้ค่ะ: ' + TIPS[n % TIPS.length] }) },
-    { words: ['น่ารัก', 'เก่ง', 'เต้น', 'เล่น', 'ลูกโอ๊ก'], r: () => ({ mood: 'excited', text: 'เย้! ขอบคุณค่ะ หนูดีใจจนต้องกระโดดเลย' }) }
+    { words: ['เคล็ดลับ', 'สุขภาพดี', 'ดูแลตัวเอง', 'แนะนำหน่อย'], r: n => ({ mood: 'excited', clip: 'chat-tip-' + (n % TIPS.length + 1), text: 'เคล็ดลับวันนี้ค่ะ: ' + TIPS[n % TIPS.length] }) },
+    { words: ['น่ารัก', 'เก่ง', 'เต้น', 'เล่น', 'ลูกโอ๊ก'], r: () => ({ clip: 'chat-fun', mood: 'excited', text: 'เย้! ขอบคุณค่ะ หนูดีใจจนต้องกระโดดเลย' }) }
   ];
 
   // n varies tips between calls; pass a counter from the UI.
@@ -2504,11 +2504,7 @@ const ChatBrain = (() => {
 
     // 1) Safety first: crisis and emergency phrases win over everything else.
     const m = SymptomCore.matchText(t);
-    if (m.flags.has('self_harm')) {
-      return { mood: 'concern', urgent: true,
-        text: 'หนูเป็นห่วงคุณมากนะคะ คุณไม่ได้อยู่คนเดียว โทรคุยกับสายด่วนสุขภาพจิต 1323 ได้ตลอด 24 ชั่วโมง ถ้ากำลังอยู่ในอันตรายตอนนี้ โทร 1669 และอยู่กับคนที่ไว้ใจได้นะคะ',
-        actions: [tel('โทร 1323', '1323'), tel('โทร 1669', '1669')] };
-    }
+    if (m.flags.has('self_harm')) return selfHarm();
     const syms = SymptomCore.SYMPTOMS.filter(s => m.symptoms.has(s.id));
     const flags = SymptomCore.FLAGS.filter(f => m.flags.has(f.id));
     const urgent = syms.filter(s => s.base === 3).map(s => s.label).concat(flags.filter(f => f.level === 3).map(f => f.label));
@@ -2529,12 +2525,22 @@ const ChatBrain = (() => {
     for (const it of INTENTS) {
       if (it.test ? it.test(t) : has(t, it.words)) return it.r(n);
     }
-    return { mood: 'curious',
-      text: 'หืม หนูยังไม่เข้าใจข้อความนี้ค่ะ ลองพิมพ์อาการ เช่น “ปวดหัว” หรือเลือกจากปุ่มด้านล่างนะคะ ถ้าฉุกเฉินโทร 1669 ทันที' };
+    return notUnderstood();
   }
-  const greeting = () => ({ mood: 'excited', pose: 'wave',
+  const selfHarm = () => ({ mood: 'concern', urgent: true, clip: 'chat-selfharm',
+    text: 'หนูเป็นห่วงคุณมากนะคะ คุณไม่ได้อยู่คนเดียว โทรคุยกับสายด่วนสุขภาพจิต 1323 ได้ตลอด 24 ชั่วโมง ถ้ากำลังอยู่ในอันตรายตอนนี้ โทร 1669 และอยู่กับคนที่ไว้ใจได้นะคะ',
+    actions: [tel('โทร 1323', '1323'), tel('โทร 1669', '1669')] });
+  const notUnderstood = () => ({ mood: 'curious', clip: 'chat-fallback',
+    text: 'หืม หนูยังไม่เข้าใจข้อความนี้ค่ะ ลองพิมพ์อาการ เช่น “ปวดหัว” หรือเลือกจากปุ่มด้านล่างนะคะ ถ้าฉุกเฉินโทร 1669 ทันที' });
+  const greeting = () => ({ mood: 'excited', pose: 'wave', clip: 'chat-welcome',
     text: 'สวัสดีค่ะ! หนูน้องสุขใจ พิมพ์คุยกับหนู หรือกดปุ่มด้านล่างได้เลยนะคะ หนูช่วยเรื่องวัดชีพจร เช็กอาการเบื้องต้น และข้อมูลฉุกเฉินค่ะ' });
-  return { reply, greeting };
+  // Every fixed reply that has a recording, as [clip, text]; tools/make-voice.mjs records these.
+  // Replies that name the user's symptoms change each time, so they use the device voice.
+  function lines() {
+    const all = [greeting(), selfHarm(), notUnderstood()].concat(...INTENTS.map(it => TIPS.map((_, n) => it.r(n))));
+    return [...new Map(all.filter(r => r.clip).map(r => [r.clip, r.text]))];
+  }
+  return { reply, greeting, lines };
 })();
 /* CHAT-CORE-END */
 
@@ -2635,7 +2641,8 @@ const ChatBrain = (() => {
         else Mascot.express(r.mood, 50);
         if (r.pose) Mascot.pose(r.pose, 2800);
         updateVoiceBtn();
-        const spoke = voiceOn && Speech.available() && Speech.speak(speakable(r.text), { quiet: true });
+        // Fixed replies play their recording (same voice as the talk screen); the rest use the device voice.
+        const spoke = voiceOn && (r.clip || Speech.available()) && Speech.speak(speakable(r.text), { quiet: true, clip: r.clip });
         if (!spoke) Mascot.talkFor(Math.min(4500, r.text.length * 50));
         setTimeout(updateVoiceBtn, 1200); // reflect a synthesis failure on this device
         done();
