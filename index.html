@@ -843,7 +843,7 @@ footer a{color:#fff}
       <h3>ความเป็นส่วนตัว</h3>
       <ul>
         <li>วัดชีพจร เช็กอาการ และแชตแบบพิมพ์ ทำงาน<strong>ในเบราว์เซอร์ของคุณ</strong> ไม่ส่งข้อมูลสุขภาพหรือภาพจากกล้องออกไป</li>
-        <li><strong>โหมดคุยด้วยเสียงกับ AI</strong> ส่งเสียงและข้อความที่คุณพูดไปยัง AI Typhoon (SCB 10X) และส่งคำตอบไปสร้างเสียงที่ Botnoi Voice ผ่านเซิร์ฟเวอร์ของทีม ใช้ได้หลังกดยินยอมเท่านั้น และถอนความยินยอมได้ในหน้าคุยด้วยเสียง</li>
+        <li><strong>โหมดคุยด้วยเสียงกับ AI</strong> ส่งเสียงและข้อความที่คุณพูดไปยัง AI Typhoon (SCB 10X) และส่งคำตอบไปสร้างเสียงที่ Botnoi Voice ผ่านเซิร์ฟเวอร์ของทีม ใช้ได้หลังกดยินยอมเท่านั้น เมื่อยินยอมแล้ว คำตอบในแชตแบบพิมพ์ที่ยังไม่มีเสียงอัดไว้ (เช่น คำตอบที่บอกชื่ออาการ) ก็จะส่งไปสร้างเสียงที่ Botnoi ด้วย แต่ข้อความที่คุณพิมพ์ไม่ถูกส่ง และถอนความยินยอมได้ในหน้าคุยด้วยเสียง</li>
         <li>ถ้าพูดถึงอาการฉุกเฉิน แอปตอบเองทันทีโดยไม่ส่งให้ AI</li>
         <li>ไม่บันทึกอาการ ผลการวัด หรือบทสนทนาไว้ถาวร ปิดหน้าแล้วข้อมูลหายไป</li>
         <li><strong>สังเกตน้ำเสียง (ทดลอง ต้องเปิดเอง)</strong> วัดน้ำเสียงในเครื่อง ส่งให้ AI แค่ผลเปรียบเทียบ เช่น “พูดเร็วกว่าปกติ” ไม่ส่งตัวเลขเสียงของคุณ</li>
@@ -957,7 +957,7 @@ footer a{color:#fff}
       <h3 id="consent-title" tabindex="-1">ก่อนคุยด้วยเสียงกับ AI</h3>
       <ul>
         <li><strong>เสียงที่คุณพูด</strong>จะถูกส่งไปแปลงเป็นข้อความ และ<strong>ข้อความ</strong>จะถูกส่งให้ AI ชื่อ Typhoon (ของ SCB 10X) ผ่านเซิร์ฟเวอร์ของทีมผู้พัฒนา เพื่อให้น้องสุขใจตอบได้</li>
-        <li><strong>คำตอบของน้องสุขใจ</strong>จะถูกส่งไปสร้างเป็นเสียงพูดที่ Botnoi Voice (บริษัทไทย) ผ่านเซิร์ฟเวอร์เดียวกัน</li>
+        <li><strong>คำตอบของน้องสุขใจ</strong>จะถูกส่งไปสร้างเป็นเสียงพูดที่ Botnoi Voice (บริษัทไทย) ผ่านเซิร์ฟเวอร์เดียวกัน รวมถึงคำตอบเรื่องอาการในแชตแบบพิมพ์ที่ยังไม่มีเสียงอัดไว้</li>
         <li>อย่าบอกชื่อจริง เลขบัตรประชาชน ที่อยู่ หรือข้อมูลที่ระบุตัวตนได้</li>
         <li>AI อาจตอบผิดพลาด ไม่ใช่แพทย์ ไม่วินิจฉัยโรค และไม่แนะนำยา</li>
         <li>ถ้าพูดถึงอาการฉุกเฉิน แอปจะตอบเองทันทีโดยไม่ส่งให้ AI และแนะนำโทร 1669</li>
@@ -2574,6 +2574,9 @@ const ChatBrain = (() => {
       return { mood: 'curious',
         text: `หนูเจออาการ “${names.join(', ')}” ค่ะ${hint} ให้หนูช่วยประเมินต่อไหมคะ จะได้รู้สัญญาณอันตรายและว่าควรพบแพทย์เมื่อไร`,
         clips: ['chat-found', ...nameClips(syms, flags), ...(syms.length ? ['chat-care-' + syms[0].id, 'chat-found-end'] : ['chat-found-end-ka'])],
+        // Spoken when the pieces aren't recorded: shorter, since a cloud voice is paid per character
+        // and the full text and the "check" button stay on screen.
+        say: `หนูเจออาการ${names.join(' และ ')}ค่ะ ${syms.length ? syms[0].care[0] + ' นะคะ' : 'กดประเมินอาการด้านล่างได้นะคะ'}`,
         actions: [{ label: 'ประเมินอาการนี้', check: raw }] };
     }
     // 3) Small talk and how-to intents.
@@ -2614,6 +2617,17 @@ const ChatBrain = (() => {
   return { reply, greeting, lines };
 })();
 /* CHAT-CORE-END */
+
+// Consent to the AI voice features (Typhoon and Botnoi through our Worker), asked on the talk
+// screen and also used by the chat. v2: it covers Botnoi voicing the replies.
+const Consent = (() => {
+  const KEY = 'sj-ai-consent-v2';
+  let mem = false; // when storage is blocked, remembered for this visit only
+  return {
+    given() { try { return localStorage.getItem(KEY) === 'yes' || mem; } catch (e) { return mem; } },
+    set(on) { mem = on; try { if (on) localStorage.setItem(KEY, 'yes'); else localStorage.removeItem(KEY); } catch (e) { /* this visit only */ } }
+  };
+})();
 
 (function initChat() {
   const chat = $('#chat'), log = $('#chat-log'), form = $('#chat-form'), input = $('#chat-text');
@@ -2713,7 +2727,10 @@ const ChatBrain = (() => {
         if (r.pose) Mascot.pose(r.pose, 2800);
         updateVoiceBtn();
         // Replies play their recording, or recorded pieces (same voice as the talk screen); without them, the device voice.
-        const spoke = voiceOn && (r.clip || r.clips || Speech.available()) && Speech.speak(speakable(r.text), { quiet: true, clip: r.clip, clips: r.clips });
+        // A symptom reply whose pieces aren't recorded yet uses the cloud voice, once AI is consented to.
+        const cloud = !!r.say && !r.urgent && Ai.configured() && Consent.given();
+        const spoke = voiceOn && (r.clip || r.clips || cloud || Speech.available())
+          && Speech.speak(speakable(r.say || r.text), { quiet: true, clip: r.clip, clips: r.clips, cloud });
         if (!spoke) Mascot.talkFor(Math.min(4500, r.text.length * 50));
         setTimeout(updateVoiceBtn, 1200); // reflect a synthesis failure on this device
         done();
@@ -3012,12 +3029,10 @@ const Ai = (() => {
     quizIntro: $('#quiz-intro'), quizQs: $('#quiz-qs'), quizResult: $('#quiz-result'),
     help: $('#talk-help'), helpText: $('#talk-help-text'), helpOpen: $('#talk-help-open')
   };
-  // v2: consent now also covers Botnoi voicing the replies, so earlier consent is asked again.
-  const CONSENT_KEY = 'sj-ai-consent-v2';
   const reduce = matchMedia('(prefers-reduced-motion: reduce)');
-  let state = 'idle', history = [], consentMem = false, opener = null, fakeTalkTimer = null;
+  let state = 'idle', history = [], opener = null, fakeTalkTimer = null;
 
-  const hasConsent = () => { try { return localStorage.getItem(CONSENT_KEY) === 'yes' || consentMem; } catch (e) { return consentMem; } };
+  const hasConsent = () => Consent.given();
   const aiOn = () => Ai.configured() && hasConsent();
 
   // Voice mood (opt-in, experimental). Prosody is measured on this device and compared with the
@@ -3220,8 +3235,7 @@ const Ai = (() => {
   function showConsent() { $('#consent-mood').checked = false; el.consent.hidden = false; el.consentTitle.focus(); }
   $('#consent-yes').addEventListener('click', () => {
     Speech.unlock();
-    consentMem = true;
-    try { localStorage.setItem(CONSENT_KEY, 'yes'); } catch (e) { /* remembered for this visit only */ }
+    Consent.set(true);
     el.consent.hidden = true;
     setMood($('#consent-mood').checked);
     el.title.focus();
@@ -3233,8 +3247,7 @@ const Ai = (() => {
     el.text.focus();
   });
   el.revoke.addEventListener('click', () => {
-    consentMem = false;
-    try { localStorage.removeItem(CONSENT_KEY); } catch (e) { /* nothing stored */ }
+    Consent.set(false);
     history = [];
     stopEverything();
     setMood(false);
@@ -3397,7 +3410,8 @@ const Ai = (() => {
     // AI mode uses the cloud voice (or a recording of a fixed line); urgent answers use the device
     // voice so nothing delays them.
     const cloud = aiOn() && !r.urgent;
-    const spoke = (cloud || Speech.available()) && Speech.speak(speakable(text), { quiet: true, onend: done, rate: r.slow ? 0.78 : undefined, cloud, clip: cloud ? r.clip : undefined, clips: cloud ? r.clips : undefined });
+    const spoken = r.say && text === r.text ? r.say : text; // the shorter spoken line, if there is one
+    const spoke = (cloud || Speech.available()) && Speech.speak(speakable(spoken), { quiet: true, onend: done, rate: r.slow ? 0.78 : undefined, cloud, clip: cloud ? r.clip : undefined, clips: cloud ? r.clips : undefined });
     if (!spoke) {
       Speech.noVoice();
       const ms = Math.min(6000, 600 + text.length * 50);
